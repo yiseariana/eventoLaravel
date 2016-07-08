@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use App\Http\Requests;
+use DB;
 use Log;
 
 class RegistroApi extends Controller {
@@ -82,30 +84,33 @@ class RegistroApi extends Controller {
         $destinationPath = storage_path() . '/uploads';
 
         if ($rPonencia != null) {
-            if (!$rPonencia->move($destinationPath, 'Ponencia_' . $cedula . "_" . $rPonencia->getClientOriginalName())) {
+            if (!$rPonencia->move($destinationPath, 'Ponencia_' . $cedula . "." . $rPonencia->getClientOriginalExtension())) {
                 return response()->json(['data' => 1], 400)
                                 ->setCallback($request->input('callback'));
             } else {
-                $registro->n_ponencia = 'Ponencia_' . $cedula . "_" . $rPonencia->getClientOriginalName();
+                $registro->n_ponencia = 'Ponencia_' . $cedula . "." . $rPonencia->getClientOriginalExtension();
+                $registro->mime_ponencia = $rPonencia->getClientMimeType();
                 $registro->save();
             }
         }
 
         if ($rConcurso != null) {
-            if (!$rConcurso->move($destinationPath, 'Concurso_' . $cedula . "_" . $rConcurso->getClientOriginalName())) {
+            if (!$rConcurso->move($destinationPath, 'Concurso_' . $cedula . "." . $rConcurso->getClientOriginalExtension())) {
                 return response()->json(['data' => 2], 400)
                                 ->setCallback($request->input('callback'));
             } else {
-                $registro->n_concurso = 'Concurso' . $cedula . "_" . $rConcurso->getClientOriginalName();
+                $registro->n_concurso = 'Concurso_' . $cedula . "." . $rConcurso->getClientOriginalExtension();
+                $registro->mime_concurso = $recibo->getClientMimeType();
                 $registro->save();
             }
         }
 
-        if (!$recibo->move($destinationPath, 'Recibo_' . $cedula . "_" . $recibo->getClientOriginalName())) {
+        if (!$recibo->move($destinationPath, 'Recibo_' . $cedula . "." . $recibo->getClientOriginalExtension())) {
             return response()->json(['data' => 3], 400)
                             ->setCallback($request->input('callback'));
         } else {
-            $registro->n_recibo = 'Recibo_' . $cedula . "_" . $recibo->getClientOriginalName();
+            $registro->n_recibo = 'Recibo_' . $cedula . "." . $recibo->getClientOriginalExtension();
+            $registro->mime_recibo = $recibo->getClientMimeType();
             $registro->save();
         }
 
@@ -118,6 +123,67 @@ class RegistroApi extends Controller {
         $registros = \App\Registro::all();
 
         return response()->json(['data' => $registros], 200)
+                        ->setCallback($request->input('callback'));
+    }
+
+    public function getArchivo(Request $request) {
+        $archivo = $request->get('archivo');
+        $tipo = $request->get('tipo');
+        $path = storage_path() . '/uploads';
+        $ruta = $path . '/' . $archivo;
+        $registro = DB::table('registro')
+                        ->where($tipo, $archivo)->first();
+        //$mime = \Storage::mimeType($file->mime());
+
+        if ($registro == null) {
+            return new Response("hola", 200);
+        }
+
+        $headers = array(
+            'Content-Type: ' . $registro->mime_recibo,
+        );
+
+        /* return (new Response($file, 200))
+          ->header('Content-Type', $registro->mime_recibo); */
+
+        return response()->download($ruta, $archivo, $headers);
+    }
+
+    public function getAprobar(Request $request) {
+        $cedula = $request->get('cedula');
+
+        $registro = \App\Registro::where('cedula', $cedula)->first();
+
+        Log::info($registro->nombre);
+
+        if ($registro == null) {
+            return response()->json(['data' => '0'], 401)
+                            ->setCallback($request->input('callback'));
+        }
+
+        $registro->aprobado = true;
+        $registro->save();
+
+        return response()->json(['data' => '1'], 200)
+                        ->setCallback($request->input('callback'));
+    }
+
+    public function getDesaprobar(Request $request) {
+        $cedula = $request->get('cedula');
+
+        $registro = \App\Registro::where('cedula', $cedula)->first();
+
+        Log::info($registro->nombre);
+
+        if ($registro == null) {
+            return response()->json(['data' => '0'], 401)
+                            ->setCallback($request->input('callback'));
+        }
+
+        $registro->aprobado = false;
+        $registro->save();
+
+        return response()->json(['data' => '0'], 200)
                         ->setCallback($request->input('callback'));
     }
 

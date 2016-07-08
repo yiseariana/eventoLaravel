@@ -31,8 +31,12 @@ class Registro extends Migration {
                 $table->string('concurso');
                 $table->string('t_producto');
                 $table->string('n_recibo');
+                $table->string('mime_recibo');
                 $table->string('n_ponencia');
+                $table->string('mime_ponencia');
                 $table->string('n_concurso');
+                $table->string('mime_concurso');
+                $table->boolean('aprobado')->default(false);
                 $table->timestamps();
             });
         }
@@ -44,9 +48,7 @@ class Registro extends Migration {
      * @return void
      */
     public function down() {
-        Schema::table('registro', function (Blueprint $table) {
-            //
-        });
+        Schema::drop('registro');
     }
 
 }

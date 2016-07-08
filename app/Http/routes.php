@@ -16,7 +16,8 @@ Route::get('/', function () {
 });
 
 
-Route::group(['prefix' => 'api', 'middleware' => 'cors'], function() {
+//Route::group(['prefix' => 'api', 'middleware' => 'cors'], function() {
+Route::group(['prefix' => 'api'], function() {
     Route::get('msg', 'RestController@msg');
     Route::controller('registroApi', 'RegistroApi');
 });
